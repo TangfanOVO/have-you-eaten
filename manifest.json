@@ -1,0 +1,66 @@
+{
+  "manifest_version": "0.3",
+  "name": "have-you-eaten",
+  "display_name": "吃了吗 · have-you-eaten",
+  "version": "0.1.0",
+  "description": "你的 AI 记得你吃了什么：每天吃了啥、哪家是雷、你爱吃什么不能吃什么。Ta 会在你一天没吃东西的时候想起来问一句。",
+  "long_description": "一本「吃过的」：店、分店、每一顿、每道菜，好吃难吃可以不点；自己做的、随手吃的也能记。另有一张不记日期的口味单（爱吃 / 不爱吃 / 不能吃）。你的 AI 手里有四只手：记一笔、口味单、翻本子、丢骰子（这顿吃什么） —— 翻的时候最上面先看到今天吃了没、上一顿离现在多久。数据只存在你自己电脑上一个文件里。装上后浏览器打开 http://127.0.0.1:8770 。",
+  "author": {
+    "name": "TangfanOVO"
+  },
+  "license": "AGPL-3.0-only",
+  "keywords": [
+    "food",
+    "diary",
+    "companion",
+    "meal",
+    "restaurant"
+  ],
+  "server": {
+    "type": "python",
+    "entry_point": "mcp_server.py",
+    "mcp_config": {
+      "command": "python3",
+      "args": [
+        "${__dirname}/mcp_server.py"
+      ],
+      "platform_overrides": {
+        "win32": {
+          "command": "python",
+          "args": [
+            "${__dirname}/mcp_server.py"
+          ]
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "food_note",
+      "description": "Ta 说吃了什么，当场记一笔（可以不打分）"
+    },
+    {
+      "name": "food_taste",
+      "description": "口味单：爱吃 / 不爱吃 / 不能吃"
+    },
+    {
+      "name": "food_book",
+      "description": "翻本子：今天吃了没、上一顿多久以前、口味单、常吃、踩过的雷"
+    },
+    {
+      "name": "food_dice",
+      "description": "这顿吃什么：照口味单剔掉不能吃、不爱吃的，丢一道菜或一个方向"
+    }
+  ],
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "python": ">=3.9"
+    }
+  }
+}

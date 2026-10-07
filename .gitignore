@@ -1,0 +1,10 @@
+# 改文件前存的旧版、安装包、缓存、本地数据都不进仓库
+*.bak*
+*.mcpb
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+.wrangler/
+food.db*
+remote-token
