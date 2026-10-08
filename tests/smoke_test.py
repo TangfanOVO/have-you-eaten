@@ -59,6 +59,31 @@ try:
     b.delete("log", rb["log_id"])
     check("删掉最后一次记录，菜跟着走", not any(x["name"] in ("米饭", "冰粉") for x in b.all()["dishes"]))
     check("加的删回去", len(b.all()["dishes"]) == 2 and len(b.all()["logs"]) == 4)
+    # 改评价、时好时坏（1008）
+    import mcp_server
+    rl = b.log({"shop": {"name": "东北人家"}, "branch": {"city": "重庆", "area": "Mascot"}, "meal": {"eaten_on": "2026-10-01", "slot": "午饭"},
+                "dishes": [{"name": "酸豆角炒肉末"}, {"name": "米饭"}]})
+    t = mcp_server.call(b, "food_rate", {"dish": "酸豆角", "verdict": "好吃", "note": "下饭"})
+    lg = [l for l in b.all()["logs"] if l["meal_id"] == rl["meal_id"]]
+    check("改评价：名字包含也认、改到最近那一顿", "改好了" in t and any(l["verdict"] == "good" and l["note"] == "下饭" for l in lg), t)
+    check("改评价：只有一次好吃还不算时好时坏", "时好时坏" not in t, t)
+    b.log({"shop": {"name": "东北人家"}, "branch": {"city": "重庆", "area": "Mascot"}, "meal": {"eaten_on": "2026-10-03", "slot": "晚饭"},
+           "dishes": [{"name": "酸豆角炒肉末", "verdict": "踩雷", "note": "齁咸"}]})
+    t = mcp_server.call(b, "food_rate", {"dish": "米饭", "verdict": "一般", "date": "2026-10-01"})
+    check("改评价：按日子找回那一顿", "10-01" in t and "米饭" in t, t)
+    t2 = mcp_server.call(b, "food_rate", {"verdict": "一般", "shop": "东北人家", "date": "2026-10-01"})
+    check("改评价：不写菜＝这一顿整体", "这一顿整体" in t2 and [m for m in b.all()["meals"] if m["id"] == rl["meal_id"]][0]["verdict"] == "meh", t2)
+    bk = b.book_text("bad", "重庆")
+    check("翻本子：时好时坏带日子", "时好时坏：10-01 好吃、10-03 踩雷（最近一次踩雷）" in bk, bk)
+    try:
+        b.rate("鱼香肉丝", "好吃")
+        check("改评价：没吃过的菜挡下", False)
+    except core.Bad:
+        check("改评价：没吃过的菜挡下", True)
+    check("给我本子链接：本机地址", "127.0.0.1" in mcp_server.call(b, "food_page", {}))
+    for m in [m for m in b.all()["meals"] if m["eaten_on"] in ("2026-10-01", "2026-10-03")]:
+        b.delete("meal", m["id"])
+    check("改评价那几顿删回去", len(b.all()["logs"]) == 4 and not any(x["name"] in ("酸豆角炒肉末", "米饭") for x in b.all()["dishes"]))
     d = b.all()
     check("币种按城市（重庆＝人民币）", all(m["currency"] == "CNY" for m in d["meals"]))
     check("日记那顿城市按设置", [m for m in d["meals"] if m["id"] == r3["meal_id"]][0]["city"] == "重庆")
@@ -134,7 +159,7 @@ try:
     check("改了 Host 的：403", req("/api/food", headers={"Host": "evil.example"})[0] == 403)
     check("不是 JSON 的写：415", req("/api/settings", {"city": "x"}, {"Content-Type": "text/plain"})[0] == 415)
     check("/food/context", "吃了吗" in req("/food/context")[1])
-    check("/food/tools", [t["name"] for t in json.loads(req("/food/tools")[1])] == ["food_note", "food_taste", "food_book", "food_dice"])
+    check("/food/tools", [t["name"] for t in json.loads(req("/food/tools")[1])] == ["food_note", "food_taste", "food_book", "food_dice", "food_rate", "food_page"])
     check("/food/ai", "记上了" in req("/food/ai", {"tool": "food_taste", "input": {"item": "奶茶", "kind": "爱吃"}})[1])
     srv.shutdown()
 
@@ -153,7 +178,7 @@ try:
     out = {j["id"]: j for j in (json.loads(l) for l in p.stdout.splitlines() if l.strip())}
     check("MCP：握手", out[1]["result"]["serverInfo"]["name"] == "have-you-eaten")
     check("MCP：通知不回话", len(out) == 8, sorted(out))
-    check("MCP：四只手", [t["name"] for t in out[2]["result"]["tools"]] == ["food_note", "food_taste", "food_book", "food_dice"])
+    check("MCP：六只手", [t["name"] for t in out[2]["result"]["tools"]] == ["food_note", "food_taste", "food_book", "food_dice", "food_rate", "food_page"])
     check("MCP：记一笔（城市按设置）", "记下了" in out[3]["result"]["content"][0]["text"])
     check("MCP：口味单", "不爱吃 · 香菜" in out[4]["result"]["content"][0]["text"])
     t5 = out[5]["result"]["content"][0]["text"]

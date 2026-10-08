@@ -201,7 +201,8 @@ def pool(d, kind=""):
         s = shops.get(b["shop_id"]) if b else None
         if nm:
             prev = seen.get(_norm(nm), {})
-            seen[_norm(nm)] = {"shop": s, "verdict": l.get("verdict") or prev.get("verdict"), "date": m.get("eaten_on") or ""}
+            seen[_norm(nm)] = {"shop": s, "verdict": l.get("verdict") or prev.get("verdict"), "date": m.get("eaten_on") or "",
+                               "trail": prev.get("trail", []) + ([((m.get("eaten_on") or "")[5:], l["verdict"])] if l.get("verdict") else [])}
     out = [dict(x) for x in menu()]
     have = {_norm(x["name"]) for x in out}
     for x in d.get("dishes", []):   # 自己记过、菜单上没有的
@@ -224,6 +225,10 @@ def pool(d, kind=""):
 def _hist_line(h):
     s = h.get("shop")
     where = s["name"] if s else ""
+    tr = h.get("trail") or []
+    if any(v == "good" for _, v in tr) and any(v == "bad" for _, v in tr):   # 时好时坏（1008）
+        lab = {"good": "好吃", "meh": "一般", "bad": "踩雷"}
+        return (f"{where}这道" if where else "这道") + "时好时坏：" + "、".join(f"{d} {lab[v]}" for d, v in tr[-4:]) + "，点之前心里有个数"
     if h.get("verdict") == "bad":
         return f"上回在{where}踩过雷，换一家点" if where else "上回吃这个踩过雷"
     if s and s.get("verdict") == "bad":

@@ -70,8 +70,11 @@ def load_token(given=None):
     return t, True
 
 
-def tool_text(book, name, args):
+def tool_text(book, name, args, page=None):
     """跟 mcp_server.py 里一样：一只手出错不卡死连接，说一句人话。"""
+    if name == "food_page":   # 远程版的本子页在这台服务器上（1008）
+        return (f"本子在 {page} （手机、电脑的浏览器都能开；能记、改、删。地址里带着暗号，只给 Ta 本人）。" if page
+                else "这台服务器没开本子页 —— 起的时候加 --web 才有。")
     try:
         return mcp_server.call(book, name, args if isinstance(args, dict) else {})
     except core.Bad as e:
@@ -88,7 +91,7 @@ def _err(rid, code, msg):
     return {"jsonrpc": "2.0", "id": rid, "error": {"code": code, "message": msg}}
 
 
-def rpc(book, m):
+def rpc(book, m, page=None):
     """一条 JSON-RPC → 回话；通知和客户端回给我们的 response 不回话（None）。"""
     if not isinstance(m, dict):
         return _err(None, -32600, "Invalid Request")
@@ -107,7 +110,7 @@ def rpc(book, m):
         name = p.get("name")
         if name not in {t["name"] for t in mcp_server.TOOLS}:
             return _err(rid, -32602, f"Unknown tool: {name}")
-        return _ok(rid, {"content": [{"type": "text", "text": tool_text(book, name, p.get("arguments"))}]})
+        return _ok(rid, {"content": [{"type": "text", "text": tool_text(book, name, p.get("arguments"), page)}]})
     if meth in EMPTY:
         return _ok(rid, EMPTY[meth])
     return _err(rid, -32601, "Method not found")
@@ -219,6 +222,13 @@ def build_handler(book, token, web_on=False):
                 return self._page(method, path, query)
             return self._reply(404)
 
+        def _page_url(self):
+            if not web_on:
+                return None
+            host = self.headers.get("X-Forwarded-Host") or self.headers.get("Host") or ""
+            proto = (self.headers.get("X-Forwarded-Proto") or ("http" if host.startswith(("127.0.0.1", "localhost")) else "https")).split(",")[0].strip()
+            return f"{proto}://{host}/u/{token}/" if host else None
+
         def _page(self, method, path, query):
             self.path = path + ("?" + query if query else "")
             if method == "GET":
@@ -265,9 +275,9 @@ def build_handler(book, token, web_on=False):
             if isinstance(msg, list):         # 老一点的客户端（2025-03-26）会一次发一串
                 if not msg:
                     return self._reply(400, _err(None, -32600, "Invalid Request"))
-                out = [r for r in (rpc(book, m) for m in msg) if r is not None] or None
+                out = [r for r in (rpc(book, m, self._page_url()) for m in msg) if r is not None] or None
             else:
-                out = rpc(book, msg)
+                out = rpc(book, msg, self._page_url())
             if out is None:                   # 只有通知 / 回话：收到了，不回话
                 return self._reply(202)
             return self._reply(200, out)

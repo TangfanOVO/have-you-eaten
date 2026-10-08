@@ -45,8 +45,8 @@
 
 | 你的情况 | 走哪条 | 有什么 |
 |---|---|---|
-| 用 **Claude 桌面 App**（Mac / Windows） | **① 一键安装包** | 网页 ＋ Ta 手里四只手 |
-| 自己搭了聊天前端 / 网关 | **② 接口接入** | 网页 ＋ 四只手 ＋ 每轮自动注入，效果最好 |
+| 用 **Claude 桌面 App**（Mac / Windows） | **① 一键安装包** | 网页 ＋ Ta 手里六只手 |
+| 自己搭了聊天前端 / 网关 | **② 接口接入** | 网页 ＋ 六只手 ＋ 每轮自动注入，效果最好 |
 | 只想先看看本子长什么样 | **③ 直接开网页** | 只有网页 |
 
 都要电脑上有 **Python 3.9 以上**：
@@ -65,7 +65,7 @@
 
 ```
 GET  /food/context    每轮接在给 AI 的系统提示末尾：今天吃了没、上一顿离现在多久、口味单、这座城踩过的雷
-GET  /food/tools      四只手的定义（名字、说明、参数），直接交给你的模型
+GET  /food/tools      六只手的定义（名字、说明、参数），直接交给你的模型
 POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_dice", "input": {...}}  →  纯文字回执
 ```
 
@@ -74,6 +74,18 @@ POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_
 ### ③ 直接开网页
 
 同上双击 `run.command` / `run.bat`。
+
+### ④ 自己有服务器：手机、电脑都能用
+
+`python3 remote.py --web`，前面套一层 HTTPS，把它给的网址填进 Claude / ChatGPT 的「自定义连接器」。手机 App 也跟着能用。
+详细的一步一步：[docs/self-host.md](docs/self-host.md)。
+
+### ⑤ 没服务器：一键部署到 Cloudflare（免费）
+
+本子放在你自己的免费 Cloudflare 账号里，一个人用，免费额度绰绰有余。部署完一样填进「自定义连接器」，本子页在手机浏览器里开，可以加到主屏幕。
+详细的一步一步：[cloudflare/README.md](cloudflare/README.md)。
+
+①④⑤ 之间能搬家：`python3 porter.py export 本子.json` 导出，到另一处导入，同一个文件。
 
 ---
 
@@ -104,7 +116,7 @@ POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_
 | 爱吃的（鸡、川菜、火锅） | 更容易丢中 |
 | 吃过的菜 | 旁边写你在哪家吃过、好不好吃；踩过雷的提醒换一家 |
 
-**Ta 那边**，手里四只手：
+**Ta 那边**，手里六只手：
 
 | 手 | 什么时候用 |
 |---|---|
@@ -112,12 +124,14 @@ POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_
 | `food_taste` | 你说「我不吃香菜」「我咖啡过敏」，Ta 记进口味单 |
 | `food_book` | 推荐吃的、帮你点外卖、你问「我最近吃了啥」之前先翻；最上面先看到今天吃了没、上一顿多久以前 |
 | `food_dice` | 你纠结吃什么、让 Ta 帮着挑：照口味单丢一次。你说「今天想吃鸡」，Ta 会往鸡上偏 |
+| `food_rate` | 先记了一笔、吃完才说好不好吃，或者想改之前的评价，Ta 改到那一顿上。同一道菜好吃过也踩过雷，Ta 会说「时好时坏」，连哪天好吃、哪天踩雷一起告诉你 |
+| `food_page` | 你问「本子在哪看」「给我链接」，Ta 把页面地址给你 |
 
 **关键的一步 —— 告诉 Ta 有这本本子。** 把下面这段放进 Claude 的**项目说明 / 自定义指令**里：
 
 > 我们有一本「吃了吗」。我跟你说吃了什么，你就用 `food_note` 记下来（我没说好不好吃就别替我打分）；
 > 我说爱吃 / 不吃 / 过敏什么，用 `food_taste`。推荐吃的、帮我挑外卖之前，先用 `food_book` 翻一下，别凭印象说店名。
-> 我纠结吃什么、让你帮我挑的时候，用 `food_dice` 丢一个。
+> 我纠结吃什么、让你帮我挑的时候，用 `food_dice` 丢一个。吃完我说好不好吃，用 `food_rate` 改到那一顿上，别再记一顿。
 > 我一天没吃东西的话，你会在本子最上面看到 —— 想关心就关心，别念我。
 
 （走 ② 每轮注入 `/food/context` 的，不用这段也知道。）
@@ -130,7 +144,7 @@ POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_
 |---|---|
 | 存在哪 | 你自己电脑上：`~/.have-you-eaten/food.db`（一个 SQLite 文件），照片在旁边的 `uploads/` |
 | 换地方 | 设环境变量 `HAVE_YOU_EATEN_DATA` 指到别的文件夹 |
-| 备份 | 拷走那个文件夹 |
+| 备份 | 拷走那个文件夹；或者 `python3 porter.py export 本子.json` 导成一个文件 |
 | 清空 | 删掉那个文件夹 |
 | 谁看得见 | 只在本机 `127.0.0.1` 开着，不往任何地方传；别的网站借你的浏览器往里写，会被挡掉 |
 | 端口 | 默认 8770，被占了用 `HAVE_YOU_EATEN_PORT` 换 |
@@ -144,14 +158,17 @@ POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_
 | `core.py` | 本子：表、规矩、给 AI 看的那几段字 |
 | `dice.py` | 这顿吃什么：怎么照口味单剔、怎么丢 |
 | `dishes.txt` | 骰子的菜单，一行一道：`菜名\|菜系\|类别\|用料`，想加菜直接往里写 |
-| `mcp_server.py` | 四只手（MCP，stdio）；起来时顺手开网页 |
+| `mcp_server.py` | 六只手（MCP，stdio）；起来时顺手开网页 |
+| `remote.py` | ④ 远程版：同样六只手，走 HTTP，暗号在网址里；`--web` 带本子页 |
+| `porter.py` | 导出 / 导入整本，①④⑤ 之间搬家用 |
+| `cloudflare/` | ⑤ 一键部署版（TypeScript），规矩跟 Python 这份逐条对过答案 |
 | `web.py` | 本机网页和 ② 那几个接口 |
 | `web/index.html` | 颜色在最上面那几个变量里，换色改 `--maple` |
 | `web/app.js` | 页面 |
 | `pack_mcpb.py` | 打一键安装包 |
-| `tests/smoke_test.py` | 改完跑一遍：`python3 tests/smoke_test.py` |
+| `tests/smoke_test.py` | 改完跑一遍：`python3 tests/smoke_test.py`；远程版：`python3 tests/remote_test.py` |
 
-只用 Python 标准库，没有要装的依赖。
+Python 这份只用标准库，没有要装的依赖；`cloudflare/` 那份要 Node，见那边的说明。
 
 ## 许可
 

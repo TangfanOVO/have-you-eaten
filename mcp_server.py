@@ -23,7 +23,8 @@ TOOLS = [
         "description": (
             "把 Ta（跟你说话的那个人）吃的一顿记进「吃了吗」本子。Ta 说吃了什么——外卖、出去吃、自己煮的、随手垫的都算——就用它当场记，"
             "记完短短说一句就行。好吃难吃 Ta 没说就别替 Ta 打分。从店里来的写 shop＋city（城市必填，不同城市的雷分开放）；"
-            "不是店里的写 place（家里、学校、朋友家）。slot 不知道就别填（按现在几点猜）。店名、菜名照 Ta 的原话抄；Ta 说的那句原话放 note。"),
+            "不是店里的写 place（家里、学校、朋友家）。slot 不知道就别填（按现在几点猜）。店名、菜名照 Ta 的原话抄；"
+            "Ta 对这顿的评价、吐槽放 note（原话）；只是让你「记一下」没评价，就不写 note。先记了、吃完才说好不好吃，用 food_rate 改，别再记一顿。"),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -45,7 +46,7 @@ TOOLS = [
                 "verdict": {"type": "string", "enum": ["好吃", "一般", "踩雷"], "description": "这一顿整体，Ta 说了才填"},
                 "total": {"type": "number", "description": "这顿一共多少钱"},
                 "currency": {"type": "string", "enum": ["CNY", "AUD", "USD", "JPY", "GBP", "EUR"], "description": "不写：按城市猜"},
-                "note": {"type": "string", "description": "Ta 说的原话"}},
+                "note": {"type": "string", "description": "Ta 对这一顿的评价、吐槽（原话）；没评价就不写"}},
             "required": []},
     },
     {
@@ -95,6 +96,27 @@ TOOLS = [
                 "want": {"type": "string", "description": "Ta 今天特别想吃的：一样东西（鸡、牛蛙）或一个菜系（川菜）"}},
             "required": []},
     },
+    {
+        "name": "food_rate",
+        "description": (
+            "改评价：已经记好的一顿，Ta 吃完才说好不好吃（「酸豆角好吃」「米饭有点硬」），或者想改之前的评价，就用它改到那一顿上，别再记一顿。"
+            "默认改最近那一顿里叫这个名字的菜；说了哪天、哪家就写 date、shop。dish 不写＝改这一顿整体。"
+            "同一道菜以前好吃过、这次踩雷（或反过来），回执里会写「时好时坏」和日子 —— 原样告诉 Ta，以后推荐这道也先提醒。"),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "dish": {"type": "string", "description": "哪道菜，照 Ta 说的；不写＝这一顿整体"},
+                "verdict": {"type": "string", "enum": ["好吃", "一般", "踩雷"]},
+                "note": {"type": "string", "description": "Ta 说的那句（原话），没有就不写"},
+                "shop": {"type": "string", "description": "哪家，Ta 说了才写"},
+                "date": {"type": "string", "description": "YYYY-MM-DD，Ta 说了是哪天才写；不写＝最近那一顿"}},
+            "required": []},
+    },
+    {
+        "name": "food_page",
+        "description": "Ta 想看本子、问「在哪看」「给我链接」的时候，把「吃了吗」页面的地址给 Ta。在页面上能记、改、删。地址只发给 Ta 本人。",
+        "inputSchema": {"type": "object", "properties": {}, "required": []},
+    },
 ]
 
 
@@ -115,7 +137,7 @@ def call(book, name, a):
             body["branch"] = {"city": a.get("city") or book.setting("city"), "area": a.get("area") or "", "platform": a.get("platform")}
         r = book.log(body)
         what = "、".join(d["name"] + (f"（{core.V[d['verdict']]}）" if d["verdict"] else "") for d in dishes) or (a.get("note") or "")
-        return f"记下了：{shop or a.get('place') or '自己做的'} · {what}。Ta 在「吃了吗」页面上看得到。"
+        return f"记下了：{shop or a.get('place') or '没写在哪'} · {what}。Ta 在「吃了吗」页面上看得到。"
     if name == "food_taste":
         items = [str(x).strip() for x in (a.get("items") or []) if str(x).strip()]
         if str(a.get("item") or "").strip():
@@ -143,6 +165,15 @@ def call(book, name, a):
         return dice.text(dice.roll(book.all(), a.get("mode") or "dish", a.get("kind") or "", a.get("want") or ""))
     if name == "food_book":
         return book.book_text(a.get("view") or "", a.get("city") or "", a.get("q") or "", a.get("days") or 7)
+    if name == "food_rate":
+        r = book.rate(a.get("dish") or "", a.get("verdict"), a.get("note"), a.get("shop") or "", a.get("date") or "")
+        m = r["meal"]
+        said = core.V.get(core.VIN.get(a.get("verdict") or "", ""), "") or "那一句记上了"
+        return (f"改好了：{m['eaten_on'][5:]} {m['slot'] or ''} {r['name'] or '这一顿整体'} → {said}。"
+                + (f" 这道{r['wave']}，以后推荐它先提醒 Ta。" if r["wave"] else ""))
+    if name == "food_page":
+        import web
+        return f"本子在 http://127.0.0.1:{web.PORT} （Ta 自己电脑上，Claude 桌面 App 开着就能打开；能记、改、删）。"
     return "（没有这只手）"
 
 
@@ -178,7 +209,7 @@ def main():
         if m == "initialize":
             send({"jsonrpc": "2.0", "id": rid, "result": {
                 "protocolVersion": (req.get("params") or {}).get("protocolVersion", "2024-11-05"),
-                "capabilities": {"tools": {}}, "serverInfo": {"name": "have-you-eaten", "version": "0.1.0"}}})
+                "capabilities": {"tools": {}}, "serverInfo": {"name": "have-you-eaten", "version": "0.2.0"}}})
         elif m == "tools/list":
             send({"jsonrpc": "2.0", "id": rid, "result": {"tools": TOOLS}})
         elif m == "tools/call":

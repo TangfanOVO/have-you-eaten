@@ -112,7 +112,7 @@
     '.fd-chev{flex:none;width:16px;height:16px;fill:none;stroke:var(--sub);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
     '.fd-tag{flex:none;font-size:13px;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}',
     /* 踩雷一眼找得到：墨底反白；好吃墨字；一般灰字（枫红只给强调，不拿来标雷，DESIGN §1） */
-    '.fd-tag.bad{background:transparent;border:1.5px solid var(--ink);color:var(--ink);font-weight:700}',   /* 描粗边：一眼找得到，深色里也不刺眼（复查：墨底在深色里是全屏最亮的一块） */
+    '.fd-tag.bad{background:transparent;border:1.5px solid var(--ink);color:var(--ink);font-weight:700}', '.fd-tag.wave{background:transparent;border:1.5px dashed var(--maple);color:var(--maple)}',   /* 描粗边：一眼找得到，深色里也不刺眼（复查：墨底在深色里是全屏最亮的一块） */
     '.fd-vw{font-weight:500;color:var(--ink)}',
     '.fd-vw.meh{font-weight:400;color:inherit}',
     '.fd-vw.bad{font-weight:700;color:var(--ink)}',
@@ -363,21 +363,25 @@
   function dishName(l) { return l.dish_id ? (X.dish[l.dish_id] || {}).name : l.name; }
   function whereOf(m) {
     var s = shopOfMeal(m), b = m.branch_id && X.branch[m.branch_id];
-    return s ? s.name + (b && b.area ? ' · ' + b.area : '') : (m.place || '自己做的');
+    return s ? s.name + (b && b.area ? ' · ' + b.area : '') : (m.place || '没写在哪');   // 骰子丢的、只说了吃什么的那顿，多半是外卖（1008）
   }
   /* 一串记录（同一道菜的）按吃的先后排，最后一次表过态的算它现在的样子 */
   function stat(logs) {
-    var r = { n: 0, good: 0, meh: 0, bad: 0, last: null, note: '', price: null, date: '', cities: {} };
+    var r = { n: 0, good: 0, meh: 0, bad: 0, last: null, note: '', price: null, date: '', cities: {}, trail: [] };
     logs.slice().sort(function (a, b) { return (mealKey(X.meal[a.meal_id]) + a.id) < (mealKey(X.meal[b.meal_id]) + b.id) ? -1 : 1; })
       .forEach(function (l) {
         var m = X.meal[l.meal_id];
         r.n++;
-        if (l.verdict) { r[l.verdict]++; r.last = l.verdict; }
+        if (l.verdict) { r[l.verdict]++; r.last = l.verdict; r.trail.push([m ? m.eaten_on : '', l.verdict]); }
         if (l.note) r.note = l.note;
         if (l.price != null) r.price = l.price;
         if (m) { r.date = m.eaten_on; if (m.city) r.cities[m.city] = 1; }
       });
+    r.mixed = !!(r.good && r.bad);   // 好吃过也踩过雷＝时好时坏
     return r;
+  }
+  function wave(st) {   /* 时好时坏：哪天好吃、哪天踩雷（1008 她：品控有波动要提醒，并且记住时间） */
+    return st.mixed ? '时好时坏：' + st.trail.slice(-4).map(function (t) { return short(t[0]) + V[t[1]]; }).join('、') : '';
   }
   function cities() {
     var cs = {};
@@ -405,7 +409,7 @@
     });
     D.dishes.forEach(function (d) {
       var s = X.shop[d.shop_id], st = stat(X.byDish[d.id] || []);
-      if (st.last === 'bad' && !(s && s.verdict === 'bad') && (!c || st.cities[c])) out.push({ shop: s, name: d.name + (s ? ' · ' + s.name : ''), why: st.note, tag: '踩雷', date: st.date });
+      if (st.last === 'bad' && !(s && s.verdict === 'bad') && (!c || st.cities[c])) out.push({ shop: s, name: d.name + (s ? ' · ' + s.name : ''), why: [wave(st), st.note].filter(Boolean).join(' · '), tag: '踩雷', date: st.date });
     });
     var seen = {};   // 这顿整体记成踩雷、又没有哪道菜标踩雷：一家只列最近那顿（1008 检查：以前这一格不算数）
     D.meals.slice().sort(function (a, b) { return mealKey(a) < mealKey(b) ? 1 : -1; }).forEach(function (m) {
@@ -750,7 +754,7 @@
     D.dishes.forEach(function (d) { var s = X.shop[d.shop_id]; out.push({ name: d.name, shop: s, where: s ? s.name : '', st: stat(X.byDish[d.id] || []) }); });
     var by = {};
     D.logs.forEach(function (l) { if (!l.dish_id && l.name) (by[low(l.name)] = by[low(l.name)] || []).push(l); });
-    Object.keys(by).forEach(function (k) { var ls = by[k], m = X.meal[ls[ls.length - 1].meal_id]; out.push({ name: ls[ls.length - 1].name, shop: null, where: (m && m.place) || '自己做的', st: stat(ls) }); });
+    Object.keys(by).forEach(function (k) { var ls = by[k], m = X.meal[ls[ls.length - 1].meal_id]; out.push({ name: ls[ls.length - 1].name, shop: null, where: (m && m.place) || '没挂店的', st: stat(ls) }); });
     return out;
   }
   function oftenItems() {
@@ -824,8 +828,8 @@
         h += '<section class="fd-sec"><div class="fd-sh"><h2>点过的菜</h2></div><div class="fd-list">' + i.ds.sort(function (a, b) { return b.st.n - a.st.n; }).map(function (x) {
           var bits = ['吃过 ' + x.st.n + ' 次'].concat(['good', 'meh', 'bad'].filter(function (v) { return x.st[v]; }).map(function (v) { return V[v] + ' ' + x.st[v] + ' 次'; }));
           if (x.st.price != null) bits.push(money(x.st.price, curFor(Object.keys(x.st.cities)[0])));
-          return '<div class="fd-row"><span class="fd-main"><span class="t">' + esc(x.d.name) + '</span><span class="s">' + esc(bits.join(' · ')) + (x.st.note ? '<br>' + esc(x.st.note) : '') + '</span></span>' +
-            (x.st.last ? '<span class="fd-tag' + (x.st.last === 'bad' ? ' bad' : '') + '">' + V[x.st.last] + '</span>' : '') + '</div>';
+          return '<div class="fd-row"><span class="fd-main"><span class="t">' + esc(x.d.name) + '</span><span class="s">' + esc(bits.join(' · ')) + (x.st.mixed ? '<br>时好时坏：' + x.st.trail.slice(-4).map(function (t) { return '<span class="fd-nw">' + esc(short(t[0]) + V[t[1]]) + '</span>'; }).join('、') : '')   /* 一段一段不拆开：「踩雷」别折成两行 */ + (x.st.note ? '<br>' + esc(x.st.note) : '') + '</span></span>' +
+            (x.st.mixed ? '<span class="fd-tag wave">时好时坏</span>' : x.st.last ? '<span class="fd-tag' + (x.st.last === 'bad' ? ' bad' : '') + '">' + V[x.st.last] + '</span>' : '') + '</div>';
         }).join('') + '</div></section>';
       }
       if (i.ms.length) h += '<section class="fd-sec"><div class="fd-sh"><h2>来过</h2></div><div class="fd-list">' + i.ms.slice(0, 20).map(function (m) {

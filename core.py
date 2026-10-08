@@ -343,6 +343,45 @@ class Book:
             return {"ok": True, "log_id": c.execute("SELECT last_insert_rowid()").fetchone()[0]}
         return self._tx(w)
 
+    def rate(self, dish="", verdict=None, note=None, shop="", date=""):
+        """改评价（1008 她：先记了一笔，吃完再说好不好吃）。找最近那一顿里叫这个名字的菜，改它的评价和那一句话；
+        dish 不写＝改那一顿整体。shop、date 用来收窄。返回 {ok, meal, name, wave}。"""
+        v, note = _verdict(verdict), _s(note, 1000)
+        if not v and not note:
+            raise Bad("好吃 / 一般 / 踩雷，或者一句话，至少说一样")
+        d = self.all()
+        X = _index(d)
+
+        def shop_of(m):
+            b = X["branch"].get(m["branch_id"]) if m["branch_id"] else None
+            return X["shop"].get(b["shop_id"]) if b else None
+        meals = sorted(d["meals"], key=_mkey, reverse=True)
+        sl = (shop or "").strip().lower()
+        if sl:
+            meals = [m for m in meals if shop_of(m) and sl in shop_of(m)["name"].lower()]
+        if (date or "").strip():
+            day = _date(date)
+            meals = [m for m in meals if m["eaten_on"] == day]
+        if not meals:
+            raise Bad("没找到那一顿 —— 先记一笔，或者说清是哪天、哪家")
+        f = {k: x for k, x in (("verdict", v), ("note", note)) if x}
+        nm = (dish or "").strip().lower()
+        if not nm:
+            self.edit("meal", meals[0]["id"], f)
+            return {"ok": True, "meal": meals[0], "name": None, "wave": ""}
+        lname = lambda l: ((X["dish"].get(l["dish_id"]) or {}).get("name") or l.get("name") or "").strip()
+        for exact in (True, False):   # 先找一字不差的，找不到再找名字互相包含的（「酸豆角」→「酸豆角炒肉末」）
+            for m in meals[:30]:
+                for l in X["by_meal"].get(m["id"], []):
+                    n = lname(l).lower()
+                    if (n == nm) if exact else (n and (nm in n or n in nm)):
+                        self.edit("log", l["id"], f)
+                        d2 = self.all()
+                        X2 = _index(d2)
+                        st = _stat(X2["by_dish"].get(l["dish_id"], []), X2) if l["dish_id"] else {}
+                        return {"ok": True, "meal": m, "name": lname(l), "wave": _wave(st) if st else ""}
+        raise Bad(f"最近这几顿里没有「{dish}」 —— 是哪天、哪家的？")
+
     def delete(self, kind, rid):
         if kind not in TABLE:
             raise Bad("没有这一种")
@@ -390,7 +429,8 @@ class Book:
             out.append("【常吃的】" + ("还看不出来。" if not ok else ""))
             for it in ok[:15 if view else 6]:
                 st = it["st"]
-                out.append(f"· {it['name']} · {it['where']} · 吃过 {st['n']} 次" + (f" · 好吃×{st['good']}" if st["good"] else "") + f" · 最近 {st['date'][5:]}")
+                w = _wave(st)
+                out.append(f"· {it['name']} · {it['where']} · 吃过 {st['n']} 次" + (f" · 好吃×{st['good']}" if st["good"] else "") + f" · 最近 {st['date'][5:]}" + (f" · {w}" if w else ""))
         if view in ("", "bad"):
             black = [s for s in d["shops"] if s["verdict"] == "bad" and (allc or any(b["city"] == city for b in X["branches_of"].get(s["id"], [])))]
             bad = [it for it in items if it["st"]["last"] == "bad"]
@@ -399,7 +439,8 @@ class Book:
             for s in black:
                 out.append(f"· 整家拉黑：{s['name']}" + (f"（{s['cuisine']}）" if s["cuisine"] else "") + (f" —— {s['note']}" if s["note"] else ""))
             for it in bad[:20]:
-                out.append(f"· 踩雷：{it['name']} · {it['where']}" + (f" —— Ta 说：{it['st']['note']}" if it["st"]["note"] else ""))
+                w = _wave(it["st"])
+                out.append(f"· 踩雷：{it['name']} · {it['where']}" + (f" · {w}" if w else "") + (f" —— Ta 说：{it['st']['note']}" if it["st"]["note"] else ""))
             for s, m in whole[:10]:
                 out.append(f"· 整顿踩雷：{s['name']}（{m['eaten_on'][5:]} 那顿）" + (f" —— Ta 说：{m['note']}" if m["note"] else ""))
         if view == "shop":
@@ -413,8 +454,9 @@ class Book:
                            + " · 分店：" + "、".join(" ".join(x for x in (b["city"], b["area"], b["label"]) if x) for b in bs))
                 for x in X["dishes_of"].get(s["id"], []):
                     st = _stat(X["by_dish"].get(x["id"], []), X)
+                    w = _wave(st)
                     out.append(f"  · {x['name']}：吃过 {st['n']} 次" + "".join(f" {V[k]}×{st[k]}" for k in ("good", "meh", "bad") if st[k])
-                               + (f" —— {st['note']}" if st["note"] else ""))
+                               + (f" · {w}" if w else "") + (f" —— {st['note']}" if st["note"] else ""))
                 if s["note"]:
                     out.append(f"  Ta 对这家说：{s['note']}")
         return "\n".join(out)
@@ -559,19 +601,28 @@ def _mkey(m):
 
 
 def _stat(logs, X):
-    r = {"n": 0, "good": 0, "meh": 0, "bad": 0, "last": None, "note": "", "date": "", "cities": set()}
+    r = {"n": 0, "good": 0, "meh": 0, "bad": 0, "last": None, "note": "", "date": "", "cities": set(), "trail": []}
     for l in sorted(logs, key=lambda l: (_mkey(X["meal"][l["meal_id"]]), l["id"])):
         m = X["meal"][l["meal_id"]]
         r["n"] += 1
         if l["verdict"]:
             r[l["verdict"]] += 1
             r["last"] = l["verdict"]
+            r["trail"].append((m["eaten_on"], l["verdict"]))
         if l["note"]:
             r["note"] = l["note"]
         r["date"] = m["eaten_on"]
         if m.get("city"):
             r["cities"].add(m["city"])
+    r["mixed"] = bool(r["good"] and r["bad"])   # 好吃过也踩过雷＝时好时坏
     return r
+
+
+def _wave(st):
+    """同一道菜好吃过也踩过雷：时好时坏，把哪天好吃、哪天踩雷列出来（1008 她：品控有波动要提醒，并且记住时间）"""
+    if not st.get("mixed"):
+        return ""
+    return "时好时坏：" + "、".join(f"{d[5:]} {V[v]}" for d, v in st["trail"][-4:]) + f"（最近一次{V[st['last']]}）"
 
 
 def _items(d, X):
@@ -587,13 +638,13 @@ def _items(d, X):
             named.setdefault(l["name"].strip().lower(), []).append(l)
     for ls in named.values():
         m = X["meal"].get(ls[-1]["meal_id"]) or {}
-        out.append({"name": ls[-1]["name"], "shop": None, "where": m.get("place") or "自己做的 · 别的", "st": _stat(ls, X)})
+        out.append({"name": ls[-1]["name"], "shop": None, "where": m.get("place") or "没挂店的", "st": _stat(ls, X)})
     return out
 
 
 def _meal_line(m, X):
     b = X["branch"].get(m["branch_id"]) if m["branch_id"] else None
-    where = (X["shop"][b["shop_id"]]["name"] + (f"（{b['area']}）" if b.get("area") else "")) if b else (m.get("place") or "自己做的")
+    where = (X["shop"][b["shop_id"]]["name"] + (f"（{b['area']}）" if b.get("area") else "")) if b else (m.get("place") or "没写在哪")
     ds = "、".join((X["dish"][l["dish_id"]]["name"] if l["dish_id"] else l["name"]) + (f"（{V[l['verdict']]}）" if l["verdict"] else "")
                    for l in X["by_meal"].get(m["id"], []))
     return (f"{m['eaten_on'][5:]} {m['slot'] or ''} {where}：{ds or m.get('note') or '—'}"
