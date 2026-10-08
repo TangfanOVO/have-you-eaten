@@ -1,0 +1,40 @@
+{
+  "name": "have-you-eaten-cloudflare",
+  "version": "0.2.0",
+  "private": true,
+  "description": "吃了吗 · have-you-eaten —— 不用自己开电脑的版本：Cloudflare Workers + D1",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "sync": "node scripts/sync-assets.mjs",
+    "conformance": "python3 scripts/conformance.py",
+    "dev": "wrangler dev",
+    "check": "wrangler types && tsc --noEmit",
+    "test": "node scripts/sync-assets.mjs --check && vitest run",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "conformance:check": "python3 scripts/conformance.py --check"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11",
+    "wrangler": "4.124.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "HYE_SECRET": {
+        "description": "你的密钥：至少 16 位，只用字母、数字、`-` 和 `_`，越乱越好（比如在电脑终端里跑 `node -e \"console.log(require('crypto').randomBytes(24).toString('base64url'))\"` 生成一串）。连接器地址和本子那一页的地址都要带着它，别给别人看。"
+      },
+      "HYE_TZ": {
+        "description": "你在哪个时区，「今天」按它算（凌晨 5 点前还算前一天）。在国内填 `Asia/Shanghai`，在悉尼填 `Australia/Sydney`。"
+      },
+      "DB": {
+        "description": "存本子的 D1 数据库，用默认的就行。"
+      }
+    }
+  }
+}

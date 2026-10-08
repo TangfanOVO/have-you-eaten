@@ -1,0 +1,4 @@
+# 密钥：claude.ai 连接器的地址、本子那一页的地址里都要带它，等于你的钥匙。至少 16 位，只用字母、数字、- 和 _。
+# 生成一个：node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
+# 本机试跑（npx wrangler dev）：把这个文件复制成 .dev.vars，等号后面填上你生成的那一串。
+HYE_SECRET=

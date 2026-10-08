@@ -1,0 +1,20 @@
+# 吃了吗 · have-you-eaten —— Cloudflare Worker 的设置。
+# 自己部署（不走「一键部署」按钮）的时候，要改的只有下面 database_id 那一行：
+#   npx wrangler d1 create have-you-eaten
+# 把它打印出来的 database_id 抄到下面，替换掉那串 0。
+name = "have-you-eaten"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+workers_dev = true
+
+[vars]
+# 你在哪个时区（「今天」从凌晨 5 点算起，按这个时区）。在悉尼就写 Australia/Sydney，回国了改回 Asia/Shanghai。
+# 改完要重新部署一次（npx wrangler deploy）才算数。
+HYE_TZ = "Asia/Shanghai"
+
+# 密钥（HYE_SECRET）不写在这里：npx wrangler secret put HYE_SECRET（见 README）。
+
+[[d1_databases]]
+binding = "DB"
+database_name = "have-you-eaten"
+database_id = "00000000-0000-0000-0000-000000000000"   # ← 换成 npx wrangler d1 create 给你的那一串
