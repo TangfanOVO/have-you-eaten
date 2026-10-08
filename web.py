@@ -15,8 +15,8 @@
   POST /api/food/dice         这顿吃什么 {mode: dish|way, kind?, want?, only?}：照口味单丢一次（only＝只在这个菜系里丢）
 自建前端 / 网关用的（见 README「接口接入」）：
   GET  /food/context          每轮接在给 AI 的系统提示末尾的那一小段（纯文字）
-  GET  /food/tools            四只手的定义
-  POST /food/ai               {"tool": "food_note" | "food_taste" | "food_book" | "food_dice", "input": {...}} → 纯文字回执
+  GET  /food/tools            六只手的定义
+  POST /food/ai               {"tool": "food_note" | "food_taste" | "food_book" | "food_dice" | "food_rate" | "food_page", "input": {...}} → 纯文字回执
 
 只听本机（127.0.0.1）。别的网站借你的浏览器往这儿写东西：查 Host 和 Origin，对不上就 403。
 """

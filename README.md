@@ -1,5 +1,9 @@
 # 吃了吗 · have-you-eaten
 
+[![吃了吗 · 宣传片](docs/promo.jpg)](../../releases/tag/v0.2.0)
+
+▶ 宣传片两分钟不到，在 [Releases](../../releases/tag/v0.2.0) 里下载：横屏和 4:5 竖屏各一版，带 `small` 的是手机上看的小文件。
+
 ## 她写的
 
 **让机记住吃饭偏好**
@@ -41,53 +45,96 @@
 
 ---
 
-## 一、怎么装
+## 一、先找你是哪一种
 
-| 你的情况 | 走哪条 | 有什么 |
-|---|---|---|
-| 用 **Claude 桌面 App**（Mac / Windows） | **① 一键安装包** | 网页 ＋ Ta 手里六只手 |
-| 自己搭了聊天前端 / 网关 | **② 接口接入** | 网页 ＋ 六只手 ＋ 每轮自动注入，效果最好 |
-| 只想先看看本子长什么样 | **③ 直接开网页** | 只有网页 |
+| 你平时怎么跟 AI 聊 | 走哪条 |
+|---|---|
+| 用 **Claude 桌面 App**，只在电脑上用 | **A** 双击装上就完 |
+| 用**官方 App**，也想在**手机上**用（Claude、ChatGPT） | **B** 本子放到网上，手机电脑一本 |
+| 用**第三方客户端**（Cherry Studio、Cursor 这类能接 MCP 的） | **C** 在客户端里配一下 |
+| **自己搭了聊天前端 / 网关**（自己写的小手机、陪伴 App） | **D** 接口接进去，效果最好 |
+| 只想先看看本子长什么样 | **E** 开个网页 |
 
-都要电脑上有 **Python 3.9 以上**：
+A、C、D、E 是在你自己电脑上跑的，要 **Python 3.9 以上**：
 - **macOS**：系统自带，什么都不用装。
 - **Windows**：到 [python.org](https://www.python.org/downloads/) 下载安装，**第一屏记得勾上 “Add python.exe to PATH”**。
 
-### ① 一键安装包（Claude 桌面 App）
+### A · 只用 Claude 桌面 App
 
 1. 到 [Releases](../../releases) 下载 `have-you-eaten-*.mcpb`。
 2. **在 Claude 桌面 App 里打开这个文件**（一般双击就行），弹出的确认里点安装。
 3. 浏览器打开 **http://127.0.0.1:8770** —— 这就是你们的本子。Claude 桌面 App 开着的时候它就在；App 关了想看，双击 `run.command` / `run.bat`。
 
-### ② 接口接入（自建前端 / 网关）
+本子在你电脑上，手机上的 App 看不到它。以后想手机也能用，导出来搬到 B（见本节最后）。
 
-下载源码，双击 `run.command`（Mac，第一次可能要右键 → 打开）或 `run.bat`（Windows），本子开在 http://127.0.0.1:8770 。然后：
+### B · 手机也要能用（Claude App、ChatGPT）
 
-```
-GET  /food/context    每轮接在给 AI 的系统提示末尾：今天吃了没、上一顿离现在多久、口味单、这座城踩过的雷
-GET  /food/tools      六只手的定义（名字、说明、参数），直接交给你的模型
-POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_dice", "input": {...}}  →  纯文字回执
-```
+手机上的 App 跑不了你电脑上的程序，本子得放到网上一个只属于你的地方：
 
-想用 MCP 的，`python3 mcp_server.py` 就是一个 stdio MCP 服务，配进你的客户端就行。
-
-### ③ 直接开网页
-
-同上双击 `run.command` / `run.bat`。
-
-### ④ 自己有服务器：手机、电脑都能用
-
-`python3 remote.py --web`，前面套一层 HTTPS，把它给的网址填进 Claude / ChatGPT 的「自定义连接器」。手机 App 也跟着能用。
-详细的一步一步：[docs/self-host.md](docs/self-host.md)。
-
-### ⑤ 没服务器：一键部署到 Cloudflare（免费）
+| 你有没有服务器 | 怎么放 |
+|---|---|
+| 没有 | 点下面的按钮，部署到你自己的免费 Cloudflare 账号，一个人用免费额度绰绰有余。详细：[cloudflare/README.md](cloudflare/README.md) |
+| 有 | `python3 remote.py --web`，前面套一层 HTTPS。详细：[docs/self-host.md](docs/self-host.md) |
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/TangfanOVO/have-you-eaten/tree/main/cloudflare)
 
-本子放在你自己的免费 Cloudflare 账号里，一个人用，免费额度绰绰有余。部署完一样填进「自定义连接器」，本子页在手机浏览器里开，可以加到主屏幕。
-详细的一步一步：[cloudflare/README.md](cloudflare/README.md)。
+放好以后你会拿到一个带暗号的地址 `https://…/mcp/<暗号>`，填进 App：
 
-①④⑤ 之间能搬家：`python3 porter.py export 本子.json` 导出，到另一处导入，同一个文件。
+| App | 填在哪 |
+|---|---|
+| **Claude**（网页、桌面、手机） | claude.ai 的设置 → 连接器 → 添加自定义连接器，粘这个地址。加一次，手机 App 也能用 |
+| **ChatGPT** | 网页版的连接器 / 插件里新建一个：服务器 URL 粘这个地址，身份验证选「无」。有的版本要先在设置里打开开发者模式 |
+
+本子页在 `https://…/u/<暗号>/`：手机浏览器打开，加到主屏幕就像个小 App；忘了地址就问 AI「给我本子链接」。地址就是钥匙，别发给别人。
+
+### C · 第三方客户端（能接 MCP 的）
+
+在客户端的 MCP 设置里加一个**本地（stdio）**服务，一般长这样：
+
+```json
+{
+  "mcpServers": {
+    "have-you-eaten": {
+      "command": "python3",
+      "args": ["/你放的位置/have-you-eaten/mcp_server.py"]
+    }
+  }
+}
+```
+
+Windows 把 `python3` 换成 `python`。它起来时顺手在 http://127.0.0.1:8770 开本子页。
+
+- 客户端只认**远程（HTTP）**服务的：照 B 把本子放到网上，填那个 `https://…/mcp/<暗号>`。
+- **Claude Code**：`claude mcp add have-you-eaten -- python3 /你放的位置/have-you-eaten/mcp_server.py`
+- 客户端里选的模型要会调工具（function calling），不然它看得见六只手、用不上。
+
+### D · 自己搭的前端 / 网关（小手机、陪伴 App）
+
+效果最好的一种：每轮把本子最上面那几行接进系统提示，AI 一开口就知道你今天吃没吃、上一顿多久以前。
+
+| 你要做的 | 接哪个 |
+|---|---|
+| 每轮注入 | `GET /food/context` → 接在给 AI 的系统提示末尾：今天吃了没、上一顿离现在多久、口味单、这座城踩过的雷 |
+| 把六只手交给模型 | `GET /food/tools` → 名字、说明、参数，原样交给你的模型 |
+| 模型要用某只手 | `POST /food/ai`，`{"tool": "food_note", "input": {...}}` → 一段纯文字回执，原样回给模型 |
+| 本子页 | 在你的前端里开一页（或者 iframe）指到本子页；想自己画，`GET /api/food` 一次拿整本 |
+
+地址前缀：
+
+| 本子在哪 | 前缀 |
+|---|---|
+| 你自己电脑上（双击 `run.command` / `run.bat`） | `http://127.0.0.1:8770` |
+| 自己的服务器 / Cloudflare（B 那两种） | `https://…/u/<暗号>`，上面几个接口都一样 |
+
+你的网关会说 MCP 的，也可以直接走 C 或 B 的 MCP，不用这几个接口。
+
+### E · 只想先看看
+
+双击 `run.command`（Mac，第一次可能要右键 → 打开）或 `run.bat`（Windows），浏览器打开 http://127.0.0.1:8770 。
+
+---
+
+**几种之间能搬家**：`python3 porter.py export 本子.json` 导出，到另一处导入，同一个文件（Cloudflare 那边在本子页的 `/u/<暗号>/move`）。
 
 ---
 
@@ -136,7 +183,7 @@ POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_
 > 我纠结吃什么、让你帮我挑的时候，用 `food_dice` 丢一个。吃完我说好不好吃，用 `food_rate` 改到那一顿上，别再记一顿。
 > 我一天没吃东西的话，你会在本子最上面看到 —— 想关心就关心，别念我。
 
-（走 ② 每轮注入 `/food/context` 的，不用这段也知道。）
+（走 D 每轮注入 `/food/context` 的，不用这段也知道。）
 
 ---
 
@@ -161,10 +208,10 @@ POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_
 | `dice.py` | 这顿吃什么：怎么照口味单剔、怎么丢 |
 | `dishes.txt` | 骰子的菜单，一行一道：`菜名\|菜系\|类别\|用料`，想加菜直接往里写 |
 | `mcp_server.py` | 六只手（MCP，stdio）；起来时顺手开网页 |
-| `remote.py` | ④ 远程版：同样六只手，走 HTTP，暗号在网址里；`--web` 带本子页 |
-| `porter.py` | 导出 / 导入整本，①④⑤ 之间搬家用 |
-| `cloudflare/` | ⑤ 一键部署版（TypeScript），规矩跟 Python 这份逐条对过答案 |
-| `web.py` | 本机网页和 ② 那几个接口 |
+| `remote.py` | B 里自己有服务器的那条：同样六只手，走 HTTP，暗号在网址里；`--web` 带本子页 |
+| `porter.py` | 导出 / 导入整本，几种之间搬家用 |
+| `cloudflare/` | B 里没服务器的那条：一键部署版（TypeScript），规矩跟 Python 这份逐条对过答案 |
+| `web.py` | 本机网页和 D 那几个接口 |
 | `web/index.html` | 颜色在最上面那几个变量里，换色改 `--maple` |
 | `web/app.js` | 页面 |
 | `pack_mcpb.py` | 打一键安装包 |
