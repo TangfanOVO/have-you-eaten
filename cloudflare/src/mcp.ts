@@ -4,7 +4,7 @@ import type { Book } from "./core";
 import { ANNOTATIONS, TOOLS, callText } from "./tools";
 
 export const PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
-export const SERVER_INFO = { name: "have-you-eaten", title: "吃了吗", version: "0.2.0" }; // 跟上一层 manifest.json 的 version 一样（npm run conformance 会对）
+export const SERVER_INFO = { name: "have-you-eaten", title: "吃了吗", version: "0.2.1" }; // 跟上一层 manifest.json 的 version 一样（npm run conformance 会对）
 
 // claude.ai 会把这段交给模型：不用自己去写项目说明也知道什么时候用哪只手（跟 README「告诉 Ta 有这本本子」那段一个意思）
 export const INSTRUCTIONS =

@@ -1,6 +1,6 @@
 {
   "name": "have-you-eaten-cloudflare",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "吃了吗 · have-you-eaten —— 不用自己开电脑的版本：Cloudflare Workers + D1",
   "license": "AGPL-3.0-or-later",

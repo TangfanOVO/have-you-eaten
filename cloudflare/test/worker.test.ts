@@ -70,7 +70,7 @@ describe("MCP（claude.ai 连接器）", () => {
     expect(a.body.result.serverInfo.name).toBe("have-you-eaten");
     const b = await rpc({ jsonrpc: "2.0", id: 2, method: "initialize", params: { protocolVersion: "2099-01-01" } });
     expect(b.body.result.protocolVersion).toBe("2025-06-18");
-    expect(a.body.result.serverInfo.version).toBe("0.2.0");
+    expect(a.body.result.serverInfo.version).toBe("0.2.1");
     const c = await rpc({ jsonrpc: "2.0", id: 3, method: "initialize", params: { protocolVersion: "2025-03-26" } });
     expect(c.body.result.protocolVersion).toBe("2025-03-26");
   });
