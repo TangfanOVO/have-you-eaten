@@ -19,7 +19,7 @@ claude.ai 网页版、手机上的 Claude App 都能用那几只手，本子那�
 
 ## 一、一键部署
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/OWNER/have-you-eaten/tree/main/cloudflare)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/TangfanOVO/have-you-eaten/tree/main/cloudflare)
 
 1. 点上面的按钮，登录（或注册）你自己的 Cloudflare 账号。
 2. 它会问两样：

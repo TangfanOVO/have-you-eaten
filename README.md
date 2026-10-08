@@ -82,6 +82,8 @@ POST /food/ai         {"tool": "food_note" | "food_taste" | "food_book" | "food_
 
 ### ⑤ 没服务器：一键部署到 Cloudflare（免费）
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/TangfanOVO/have-you-eaten/tree/main/cloudflare)
+
 本子放在你自己的免费 Cloudflare 账号里，一个人用，免费额度绰绰有余。部署完一样填进「自定义连接器」，本子页在手机浏览器里开，可以加到主屏幕。
 详细的一步一步：[cloudflare/README.md](cloudflare/README.md)。
 
