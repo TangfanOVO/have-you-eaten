@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>吃了吗</title>
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
+<!-- 加到主屏幕像个小 App：自己的图标和名字；不写 start_url，从哪个地址加的就从哪儿开（远程版带着暗号的那条） -->
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="吃了吗">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f4f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1714" media="(prefers-color-scheme: dark)">
 <style>
 /* 颜色只在这儿：纸色，跟着系统深浅走。重点色只有一个（--maple），换色改这两行。 */
 :root{

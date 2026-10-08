@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parent
 M = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
 OUT = ROOT / f"{M['name']}-{M['version']}.mcpb"
 FILES = ["manifest.json", "mcp_server.py", "core.py", "web.py", "dice.py", "dishes.txt", "README.md", "LICENSE", "COMMERCIAL.md",
-         "web/index.html", "web/app.js", "web/icon.svg"]
+         "web/index.html", "web/app.js", "web/icon.svg",
+         "web/icon-180.png", "web/icon-192.png", "web/icon-512.png", "web/manifest.webmanifest"]
 
 with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
     for f in FILES:

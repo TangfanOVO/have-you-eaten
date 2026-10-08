@@ -34,7 +34,10 @@ import core  # noqa: E402
 
 PORT = int(os.environ.get("HAVE_YOU_EATEN_PORT") or 8770)
 STATIC = {"/": ("index.html", "text/html; charset=utf-8"), "/index.html": ("index.html", "text/html; charset=utf-8"),
-          "/app.js": ("app.js", "application/javascript; charset=utf-8"), "/icon.svg": ("icon.svg", "image/svg+xml")}
+          "/app.js": ("app.js", "application/javascript; charset=utf-8"), "/icon.svg": ("icon.svg", "image/svg+xml"),
+          # 加到主屏幕用（1008）
+          "/icon-180.png": ("icon-180.png", "image/png"), "/icon-192.png": ("icon-192.png", "image/png"), "/icon-512.png": ("icon-512.png", "image/png"),
+          "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json")}
 
 
 def make_server(book=None, port=None):
